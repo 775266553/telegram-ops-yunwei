@@ -1,0 +1,11 @@
+.DS_Store
+.env
+*.db
+*.db-shm
+*.db-wal
+*.session
+*.session-journal
+*.log
+__pycache__/
+.pytest_cache/
+.venv/

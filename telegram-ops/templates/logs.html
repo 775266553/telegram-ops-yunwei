@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <div class="card-head"><div><h2>发送日志</h2><span class="muted">最近 200 条发送结果，用于定位失败原因。</span></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>ID</th><th>队列</th><th>账户</th><th>规则</th><th>状态</th><th>错误</th><th>时间（北京时间）</th></tr></thead>
+    <tbody>{% for log in logs %}<tr><td>{{ log.id }}</td><td>{{ log.queue_id or "-" }}</td><td>{{ log.account_id }}</td><td>{{ log.rule_id or "-" }}</td><td><span class="status {{ log.status }}">{{ display_label(log.status) }}</span></td><td class="wrap">{{ log.error or "-" }}</td><td>{{ display_datetime(log.created_at) }}</td></tr>{% else %}<tr><td class="empty" colspan="7">暂无发送日志。</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

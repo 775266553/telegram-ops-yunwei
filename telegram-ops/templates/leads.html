@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <div class="card-head"><div><h2>监听记录</h2><span class="muted">最近 200 条匹配记录。仅记录模式会停留在这里，不会进入发送队列。</span></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>ID</th><th>用户</th><th>规则</th><th>状态</th><th>消息</th><th>时间（北京时间）</th></tr></thead>
+    <tbody>{% for l in leads %}
+      <tr><td>{{ l.id }}</td><td>{{ l.telegram_user_id }}{% if l.username %}<br><span class="muted">@{{ l.username }}</span>{% endif %}</td><td>{{ l.matched_rule_id }}</td><td><span class="status {{ l.status }}">{{ display_label(l.status) }}</span></td><td class="wrap">{{ l.message_text }}</td><td>{{ display_datetime(l.created_at) }}</td></tr>
+    {% else %}<tr><td class="empty" colspan="6">暂无监听记录，启用监听规则后会在这里显示匹配结果。</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

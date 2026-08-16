@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  {% if error %}<div class="banner error">{{ error }}</div>{% endif %}
+  <div class="card-head"><div><h2>新增账户</h2><span class="muted">API 凭据来自 my.telegram.org，保存后再发送验证码登录。</span></div></div>
+  <form method="post" action="/accounts">
+    <div class="grid">
+      <label>名称<input name="name" placeholder="可选，默认使用手机号"></label>
+      <label>手机号<input name="phone" required placeholder="包含国家区号，如 +44..."></label>
+      <label>API ID<input name="api_id" type="number" min="1" required></label>
+      <label>API Hash<input name="api_hash" required autocomplete="off"></label>
+    </div>
+    <div class="toolbar">
+      <label class="switch"><input type="checkbox" name="send_enabled" value="true" checked><span class="switch-track"></span><span class="switch-text">允许发送</span></label>
+      <label class="switch"><input type="checkbox" name="private_message_enabled" value="true"><span class="switch-track"></span><span class="switch-text">允许自动私信</span></label>
+      <label class="switch"><input type="checkbox" name="proxy_enabled" value="true"><span class="switch-track"></span><span class="switch-text">启用固定代理</span></label>
+    </div>
+    <div class="grid">
+      <label>代理类型<select name="proxy_type"><option value="socks5">SOCKS5</option><option value="socks4">SOCKS4</option><option value="http">HTTP</option></select></label>
+      <label>代理地址<input name="proxy_host" placeholder="例如 127.0.0.1"></label>
+      <label>代理端口<input name="proxy_port" type="number" min="1" max="65535" placeholder="例如 7897"></label>
+      <label>代理用户<input name="proxy_username" autocomplete="off"><span class="hint">本地代理通常留空。</span></label>
+      <label>代理密码<input name="proxy_password" type="password" autocomplete="new-password"><span class="hint">本地代理通常留空。</span></label>
+    </div>
+    <div class="form-actions"><button type="submit">保存账户</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <div><h2>账户列表</h2><span class="muted">共 {{ accounts|length }} 个账号</span></div>
+    <div class="toolbar">
+      <form class="inline" method="post" action="/accounts/import" enctype="multipart/form-data">
+        <label class="button secondary small" for="account-import">导入 JSON</label>
+        <input id="account-import" name="file" type="file" accept="application/json,.json" data-import-input hidden>
+      </form>
+      <a class="button secondary small" href="/accounts/export.json">导出全部</a>
+    </div>
+  </div>
+  <p class="muted">导出文件包含登录 Session、API 凭据和代理密码，可直接用于换服务器迁移。</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>ID</th><th>名称</th><th>手机号</th><th>状态</th><th>代理</th><th>发送权限</th><th>最近检查（北京时间）</th><th>操作</th></tr></thead>
+      <tbody>
+      {% for a in accounts %}
+        <tr>
+          <td>{{ a.id }}</td><td>{{ a.name }}</td><td>{{ a.phone }}</td>
+          <td>
+            <span class="status {{ a.status }}">{{ display_label(a.status) }}</span>
+            {% if a.risk_status %}<br><span class="status risk">{{ a.risk_status }}</span>{% endif %}
+            {% if a.last_error %}<br><span class="muted">{{ a.last_error }}</span>{% endif %}
+          </td>
+          <td>{{ "已启用" if a.proxy_enabled else "未启用" }}{% if a.proxy_enabled %}<br><span class="muted">{{ a.proxy_type|upper }} {{ a.proxy_host }}:{{ a.proxy_port }}</span>{% endif %}</td>
+          <td>{{ "可发送" if a.send_enabled else "禁止发送" }} / {{ "可私信" if a.private_message_enabled else "禁止私信" }}</td>
+          <td>{{ display_datetime(a.last_health_check_at) }}</td>
+          <td><div class="actions">
+            <a class="button secondary small" href="/accounts/{{ a.id }}/edit">编辑</a>
+            <form class="inline" method="post" action="/accounts/{{ a.id }}/send-code"><button class="small">发送验证码</button></form>
+            <form class="inline" method="post" action="/accounts/{{ a.id }}/sync-chats"><button class="secondary small">同步群组</button></form>
+            <form class="inline" method="post" action="/accounts/{{ a.id }}/toggle"><button class="small {% if a.status == 'disabled' %}success{% else %}danger{% endif %}">{{ "恢复账号" if a.status == "disabled" else "禁用账号" }}</button></form>
+          </div></td>
+        </tr>
+      {% else %}
+        <tr><td class="empty" colspan="8">还没有账号，可以在上方新增或导入 JSON。</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

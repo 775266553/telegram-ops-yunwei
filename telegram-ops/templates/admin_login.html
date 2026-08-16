@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>后台登录</title>
+  <link rel="stylesheet" href="/static/app.css?v=20260816-3">
+</head>
+<body>
+<main style="max-width: 420px; margin: 8vh auto;">
+  <div class="card">
+    <h2>后台登录</h2>
+    {% if error %}<div class="banner error">{{ error }}</div>{% endif %}
+    <form method="post" action="/admin/login">
+      <label>用户名<input name="username" autocomplete="username" required></label>
+      <label>密码<input name="password" type="password" autocomplete="current-password" required></label>
+      <input type="hidden" name="next" value="{{ next or '/' }}">
+      <div class="form-actions"><button>登录</button></div>
+    </form>
+    <p class="muted">公网部署请修改默认密码，并优先使用 ADMIN_PASSWORD_HASH。</p>
+  </div>
+</main>
+</body>
+</html>

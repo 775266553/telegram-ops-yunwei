@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+{% set worker = worker_status() %}
+{% if not worker.running %}<div class="banner error">Worker 已停止，定时任务到期后不会进入发送队列。请先到<a href="/">仪表盘</a>启动 Worker。</div>{% endif %}
+<section class="card">
+  <div class="card-head">
+    <div><h2>新增规则</h2><span class="muted">发送模式会自动决定记录、群内回复和私信行为。</span></div>
+  </div>
+  <form method="post" action="/rules">
+    <div class="grid">
+      <label>名称<input name="name" required placeholder="例如：产品咨询"></label>
+      <label>匹配模式
+        <select id="new-rule-match-mode" name="match_mode" data-match-mode><option value="keyword">关键词</option><option value="regex">正则表达式</option><option value="schedule">定时任务</option></select>
+        <span class="hint" data-match-mode-hint>关键词和正则用于匹配收到的消息；定时任务按时间自动发送。</span>
+      </label>
+      <label>发送模式
+        <select name="send_mode" data-send-mode><option value="record_only">仅记录</option><option value="group_reply">群内回复</option><option value="private_message">自动私信</option><option value="both">群内回复并私信</option><option value="scheduled_group" data-schedule-only>定时群发</option></select>
+        <span class="hint" data-send-mode-hint>仅记录只生成监听记录，不会创建发送任务。</span>
+      </label>
+      <label>冷却秒数<input name="cooldown_seconds" type="number" min="0" value="86400"><span class="hint">同一用户再次触发前的等待时间。</span></label>
+      <label>每日上限<input name="daily_limit" type="number" min="1" value="20"><span class="hint">建议先从较低数值开始。</span></label>
+      <label class="switch"><input type="checkbox" name="enabled" value="true"><span class="switch-track"></span><span class="switch-text">创建后立即启用</span></label>
+    </div>
+    <label class="match-keywords-field" data-match-keywords-field>关键词 / 正则<textarea id="new-rule-keywords" name="keywords" placeholder="关键词可用逗号或换行分隔"></textarea><span class="hint">正则模式下每行填写一条表达式。</span></label>
+    {% set keywords_id = 'new-rule-keywords' %}
+    {% set match_mode_id = 'new-rule-match-mode' %}
+    {% include "_regex_template_tools.html" %}
+    <div class="schedule-fields" data-schedule-fields hidden>
+      <div class="grid">
+        <fieldset class="multi-field"><legend>发送账号（可多选）</legend><div class="multi-choice-list" data-schedule-account-list>{% for account in accounts %}<label class="multi-choice"><input type="checkbox" name="schedule_account_ids" value="{{ account.id }}" data-schedule-account><span><strong>{{ account.name }}</strong><small>{{ account.phone }}</small></span></label>{% else %}<span class="empty-choice">暂无可用账号</span>{% endfor %}</div><span class="hint">直接勾选即可选择多个已登录账号。</span></fieldset>
+        <fieldset class="multi-field"><legend>目标群（可多选）</legend><div class="multi-choice-list" data-schedule-chat-list>{% for chat in chats %}<label class="multi-choice" data-schedule-chat-option><input type="checkbox" name="schedule_chat_ids" value="{{ chat.id }}" data-schedule-chat data-account-id="{{ chat.account_id }}"><span><strong>{{ chat.account.name }} / {{ chat.title }}</strong><small>{{ chat.telegram_chat_id }}</small></span></label>{% else %}<span class="empty-choice">暂无可用群组</span>{% endfor %}</div><span class="hint">可以直接勾选一个或多个目标群；系统会自动勾选对应账号。</span></fieldset>
+        <label>最短间隔（分钟）<input name="schedule_interval_min_minutes" data-schedule-interval type="number" min="1" max="43200" value="120"><span class="hint">例如 120 分钟。</span></label>
+        <label>最长间隔（分钟）<input name="schedule_interval_max_minutes" data-schedule-interval type="number" min="1" max="43200" value="120"><span class="hint">例如 135 分钟；每次会在 120～135 分钟内随机安排下一次。</span></label>
+      </div>
+      <span class="hint">定时任务不需要关键词；只会按发送内容、账号、目标群和时间间隔创建任务。</span>
+    </div>
+    <label><span data-message-label>回复内容</span><textarea id="new-rule-reply" name="reply_template" placeholder="仅记录时可以留空"></textarea></label>
+    {% set textarea_id = 'new-rule-reply' %}
+    {% include "_reply_template_tools.html" %}
+    <div class="form-actions"><button type="submit">保存规则</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>规则列表</h2><span class="muted">共 {{ rules|length }} 条</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>ID</th><th>名称</th><th>匹配模式</th><th>发送模式</th><th>下一次执行（北京时间）</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>
+      {% for r in rules %}
+        <tr>
+          <td>{{ r.id }}</td><td>{{ r.name }}</td><td>{{ display_label(r.match_mode) }}</td>
+          <td>{{ display_label(r.send_mode) }}</td>
+          <td>{{ display_datetime(r.schedule_next_run_at) if r.match_mode == 'schedule' and r.enabled else '-' }}</td>
+          <td><span class="status {% if r.enabled %}active{% else %}disabled{% endif %}">{{ "已启用" if r.enabled else "已禁用" }}</span></td>
+          <td><div class="actions">
+            <a class="button secondary small" href="/rules/{{ r.id }}/edit">编辑</a>
+            <form class="inline" method="post" action="/rules/{{ r.id }}/toggle"><button class="small {% if not r.enabled %}success{% else %}danger{% endif %}">{{ "禁用" if r.enabled else "启用" }}</button></form>
+          </div></td>
+        </tr>
+      {% else %}
+        <tr><td class="empty" colspan="7">还没有规则，请先在上方创建。</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

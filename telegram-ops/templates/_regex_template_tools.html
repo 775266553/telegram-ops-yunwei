@@ -1,0 +1,7 @@
+<div class="regex-tools" data-regex-tools data-target="{{ keywords_id }}" data-mode-target="{{ match_mode_id }}" hidden>
+  <span class="hint"><strong>正则是“找消息”的条件，不是定时器。</strong>例如有人发“每 2 小时发一次”时才会命中；它不会等待 2 小时，也不会自动发消息。</span>
+  <div class="regex-template-row" aria-label="正则快捷模板">
+    <button class="regex-chip" type="button" title="{{ '(?:定时|每)\\s*2\\s*(?:个)?小时\\s*(?:发|发送)?\\s*一次' }}" data-regex-template="(?:定时|每)\s*2\s*(?:个)?小时\s*(?:发|发送)?\s*一次">示例：匹配“定时 2 小时发一次”</button>
+    <button class="regex-chip" type="button" title="匹配“每 30 分钟发一次”等不同间隔" data-regex-template="(?:定时|每)\s*\d+\s*(?:分钟|小时|天)\s*(?:发|发送)?\s*一次">示例：匹配任意时间间隔</button>
+  </div>
+</div>

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <div class="card-head"><div><h2>发送队列</h2><span class="muted">回复会按风控延迟进入发送流程，不会立即发出。</span></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>ID</th><th>账户</th><th>发送类型</th><th>目标</th><th>状态</th><th>错误</th><th>执行时间（北京时间）</th></tr></thead>
+    <tbody>{% for j in jobs %}
+      <tr><td>{{ j.id }}</td><td>{{ j.account_id }}</td><td>{{ display_label(j.send_type) }}</td><td>{{ j.destination_chat_id }}</td><td><span class="status {{ j.status }}">{{ display_label(j.status) }}</span></td><td class="wrap">{{ j.error or "-" }}</td><td>{{ display_datetime(j.scheduled_at or j.created_at) }}</td></tr>
+    {% else %}<tr><td class="empty" colspan="7">发送队列为空。</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

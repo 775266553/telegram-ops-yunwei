@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <div class="card-head"><div><h2>群组/频道</h2><span class="muted">开启监听后才会处理该群的新消息；主监听用于避免多个账号重复记录。</span></div></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>ID</th><th>账号</th><th>Telegram Chat ID</th><th>标题</th><th>类型</th><th>监听</th><th>主监听</th><th>操作</th></tr></thead>
+    <tbody>
+    {% for c in chats %}
+      <tr>
+        <td>{{ c.id }}</td><td>{{ c.account.name }}</td><td>{{ c.telegram_chat_id }}</td><td class="wrap">{{ c.title }}</td>
+        <td>{{ display_label(c.type) }}</td><td><span class="status {% if c.enabled %}active{% else %}disabled{% endif %}">{{ "监听中" if c.enabled else "已停止" }}</span></td><td>{{ "是" if c.is_primary_listener else "否" }}</td>
+        <td><form method="post" action="/chats/{{ c.id }}/toggle"><button class="small {% if c.enabled %}danger{% else %}success{% endif %}">{{ "停止监听" if c.enabled else "开启监听" }}</button></form></td>
+      </tr>
+    {% else %}
+      <tr><td class="empty" colspan="8">还没有群组，请先在账户页同步群组。</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

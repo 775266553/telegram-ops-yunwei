@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <div class="card-head"><div><h2>编辑账户 #{{ account.id }}</h2><span class="muted">敏感字段留空时会保留原值。</span></div></div>
+  {% if error %}<div class="banner error">{{ error }}</div>{% endif %}
+  <form method="post" action="/accounts/{{ account.id }}/edit">
+    <div class="grid">
+      <label>名称<input name="name" value="{{ account.name or '' }}"></label>
+      <label>手机号<input name="phone" value="{{ account.phone }}" required></label>
+      <label>API ID<input name="api_id" type="number" min="1" value="{{ account.api_id }}" required></label>
+      <label>API Hash<input name="api_hash" placeholder="留空保持不变" autocomplete="off"><span class="hint">只有更换凭据时才需要填写。</span></label>
+    </div>
+    <div class="toolbar">
+      <label class="switch"><input type="checkbox" name="send_enabled" value="true" {% if account.send_enabled %}checked{% endif %}><span class="switch-track"></span><span class="switch-text">允许发送</span></label>
+      <label class="switch"><input type="checkbox" name="private_message_enabled" value="true" {% if account.private_message_enabled %}checked{% endif %}><span class="switch-track"></span><span class="switch-text">允许自动私信</span></label>
+      <label class="switch"><input type="checkbox" name="proxy_enabled" value="true" {% if account.proxy_enabled %}checked{% endif %}><span class="switch-track"></span><span class="switch-text">启用固定代理</span></label>
+    </div>
+    <div class="grid">
+      <label>代理类型<select name="proxy_type">
+        <option value="socks5" {% if account.proxy_type == 'socks5' %}selected{% endif %}>SOCKS5</option>
+        <option value="socks4" {% if account.proxy_type == 'socks4' %}selected{% endif %}>SOCKS4</option>
+        <option value="http" {% if account.proxy_type == 'http' %}selected{% endif %}>HTTP</option>
+      </select></label>
+      <label>代理地址<input name="proxy_host" value="{{ account.proxy_host or '' }}"></label>
+      <label>代理端口<input name="proxy_port" type="number" min="1" max="65535" value="{{ account.proxy_port or '' }}"></label>
+      <label>代理用户<input name="proxy_username" value="{{ account.proxy_username or '' }}" autocomplete="off"><span class="hint">本地代理通常留空。</span></label>
+      <label>代理密码<input name="proxy_password" type="password" placeholder="留空保持不变" autocomplete="new-password"></label>
+    </div>
+    <div class="form-actions"><button type="submit">保存修改</button><a class="button secondary" href="/accounts">返回账户列表</a></div>
+  </form>
+</section>
+{% endblock %}

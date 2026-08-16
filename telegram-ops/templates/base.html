@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title or "Telegram Ops Workbench" }}</title>
+  <link rel="stylesheet" href="/static/app.css?v=20260816-5">
+  <script src="/static/app.js?v=20260816-5" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/">Telegram Ops</a>
+  <nav aria-label="主导航">
+    <a class="{% if request.url.path == '/' %}current{% endif %}" href="/">仪表盘</a>
+    <a class="{% if request.url.path.startswith('/accounts') %}current{% endif %}" href="/accounts">账户</a>
+    <a class="{% if request.url.path.startswith('/chats') %}current{% endif %}" href="/chats">群组</a>
+    <a class="{% if request.url.path.startswith('/rules') %}current{% endif %}" href="/rules">规则</a>
+    <a class="{% if request.url.path.startswith('/leads') %}current{% endif %}" href="/leads">监听</a>
+    <a class="{% if request.url.path.startswith('/queue') %}current{% endif %}" href="/queue">发送队列</a>
+    <a class="{% if request.url.path.startswith('/guards') %}current{% endif %}" href="/guards">黑名单/退订</a>
+    <a class="{% if request.url.path.startswith('/logs') %}current{% endif %}" href="/logs">日志</a>
+    {% set worker = worker_status() %}
+    <span class="nav-status status {% if worker.running %}active{% else %}disabled{% endif %}">Worker {{ "运行中" if worker.running else "已停止" }} · 在线 {{ worker.count }}</span>
+    <a class="logout" href="/admin/logout">退出</a>
+  </nav>
+</header>
+<main>
+  {% set notice = notice_message(request) %}
+  {% if notice %}<div class="banner success">{{ notice }}</div>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

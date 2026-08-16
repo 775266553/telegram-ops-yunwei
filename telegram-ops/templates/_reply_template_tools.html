@@ -1,0 +1,34 @@
+<div class="template-tools" data-template-tools data-target="{{ textarea_id }}">
+  <div class="template-row">
+    <select data-template-select aria-label="选择回复模板">
+      <option value="">选择已保存模板</option>
+      {% for item in reply_templates %}
+        <option value="{{ item.id }}" data-content="{{ item.content|e }}">{{ item.name }}</option>
+      {% endfor %}
+    </select>
+    <button class="secondary small" type="button" data-template-action="apply">套用</button>
+    <input data-template-name maxlength="80" placeholder="模板名称，如：欢迎语">
+    <button class="success small" type="button" data-template-action="save">保存为模板</button>
+    <button class="danger small" type="button" data-template-action="delete">删除模板</button>
+  </div>
+  {% set reply_variables = [
+    ('$username', '触发消息用户的 Telegram 用户名'),
+    ('$user_id', '触发消息用户的 Telegram 数字 ID'),
+    ('$chat_id', '消息来源群组或频道的 Chat ID'),
+    ('$rule_name', '本次命中的规则名称'),
+    ('$message_text', '用户发送的原始消息')
+  ] %}
+  <div class="variable-help-head">
+    <strong>回复变量</strong>
+    <span>点击变量即可插入回复内容</span>
+  </div>
+  <div class="variable-chips" aria-label="回复变量说明">
+    {% for variable, description in reply_variables %}
+      <div class="variable-help-item">
+        <button class="variable-chip" type="button" title="{{ description }}" aria-label="插入 {{ variable }}：{{ description }}" data-target="{{ textarea_id }}" data-insert-variable="{{ variable }}">{{ variable }}</button>
+        <span>{{ description }}</span>
+      </div>
+    {% endfor %}
+  </div>
+  <div class="banner success" data-template-message hidden></div>
+</div>

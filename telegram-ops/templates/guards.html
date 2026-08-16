@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <div class="card-head"><div><h2>黑名单/退订</h2><span class="muted">命中的用户不会继续创建自动发送任务。</span></div></div>
+  <form method="post" action="/guards">
+    <div class="grid">
+      <label>Telegram User ID<input name="telegram_user_id" type="number" required></label>
+      <label>用户名<input name="username" placeholder="可选，不需要填写 @"></label>
+    </div>
+    <div class="toolbar">
+      <label class="switch"><input type="checkbox" name="blacklisted" value="true"><span class="switch-track"></span><span class="switch-text">加入黑名单</span></label>
+      <label class="switch"><input type="checkbox" name="unsubscribed" value="true"><span class="switch-track"></span><span class="switch-text">标记退订</span></label>
+    </div>
+    <label>备注<textarea name="note" placeholder="可选"></textarea></label>
+    <div class="form-actions"><button type="submit">保存设置</button></div>
+  </form>
+</section>
+<section class="card">
+  <div class="card-head"><h2>用户列表</h2><span class="muted">共 {{ guards|length }} 条</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>User ID</th><th>用户名</th><th>黑名单</th><th>退订</th><th>备注</th></tr></thead>
+    <tbody>{% for g in guards %}<tr><td>{{ g.telegram_user_id }}</td><td>{{ g.username or "-" }}</td><td>{{ boolean_label(g.blacklisted) }}</td><td>{{ boolean_label(g.unsubscribed) }}</td><td class="wrap">{{ g.note or "-" }}</td></tr>{% else %}<tr><td class="empty" colspan="5">暂无黑名单或退订记录。</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

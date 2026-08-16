@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <div class="card-head"><h2>仪表盘</h2><span class="status {% if worker.running %}active{% else %}disabled{% endif %}">Worker {{ "运行中" if worker.running else "已停止" }} · 在线 {{ worker.count }}</span></div>
+  <div class="grid stats">
+    <div class="stat-box"><strong>{{ data.accounts }}</strong><span class="muted">账户</span></div>
+    <div class="stat-box"><strong>{{ data.active_accounts }}</strong><span class="muted">在线账户</span></div>
+    <div class="stat-box"><strong>{{ data.chats }}</strong><span class="muted">群组/频道</span></div>
+    <div class="stat-box"><strong>{{ data.rules }}</strong><span class="muted">规则</span></div>
+    <div class="stat-box"><strong>{{ data.leads }}</strong><span class="muted">监听记录</span></div>
+    <div class="stat-box"><strong>{{ data.pending }}</strong><span class="muted">等待发送</span></div>
+  </div>
+</section>
+<section class="card">
+  <div class="card-head"><div><h2>监听服务</h2><span class="muted">Worker 负责接收 Telegram 新消息并处理发送队列。</span></div></div>
+  {% if worker.running %}
+    <form class="inline" method="post" action="/workers/stop"><button class="danger">停止 Worker</button></form>
+  {% else %}
+    <form class="inline" method="post" action="/workers/start"><button class="success">启动 Worker</button></form>
+  {% endif %}
+</section>
+{% endblock %}
