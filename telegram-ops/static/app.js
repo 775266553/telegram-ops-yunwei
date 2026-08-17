@@ -122,11 +122,12 @@ function syncScheduleAccountForChat(form, chat) {
 }
 
 function syncScheduleGroupRequirements(form) {
+  const isSchedule = form?.querySelector("[data-match-mode]")?.value === "schedule";
   ["[data-schedule-account]", "[data-schedule-chat]"].forEach((selector) => {
     const fields = Array.from(form?.querySelectorAll(selector) || []);
     const hasSelection = fields.some((field) => field.checked);
     fields.forEach((field, index) => {
-      field.required = !hasSelection && index === 0;
+      field.required = isSchedule && !hasSelection && index === 0;
     });
   });
 }

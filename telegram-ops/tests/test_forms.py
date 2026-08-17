@@ -76,3 +76,10 @@ def test_schedule_mode_controls_are_available():
         assert '可以直接勾选一个或多个目标群' in content
         assert '<select name="schedule_account_ids"' not in content
     assert "[hidden] { display: none !important; }" in (static_dir / "app.css").read_text(encoding="utf-8")
+
+
+def test_hidden_schedule_targets_are_not_required_for_message_rules():
+    static_dir = Path(__file__).parents[1] / "static"
+    script = (static_dir / "app.js").read_text(encoding="utf-8")
+    assert 'const isSchedule = form?.querySelector("[data-match-mode]")?.value === "schedule";' in script
+    assert "field.required = isSchedule && !hasSelection && index === 0;" in script
