@@ -241,7 +241,7 @@ def create_lead_and_queue(db: Session, ctx: MessageContext, rule: Rule) -> Lead:
 
 def process_incoming_message(db: Session, ctx: MessageContext) -> list[Lead]:
     chat = db.get(Chat, ctx.chat_id)
-    if not chat or not chat.enabled or not chat.is_primary_listener:
+    if not chat or not chat.is_available or not chat.enabled or not chat.is_primary_listener:
         return []
 
     created: list[Lead] = []

@@ -62,6 +62,7 @@ class Chat(Base, TimestampMixin):
     access_hash: Mapped[str] = mapped_column(String(255), nullable=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     type: Mapped[str] = mapped_column(String(40), nullable=False)
+    is_available: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     is_primary_listener: Mapped[bool] = mapped_column(Boolean, default=True)
     last_sync_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)

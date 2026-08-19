@@ -49,6 +49,7 @@ NOTICE_MESSAGES = {
     "login_success": "Telegram 账号登录成功。",
     "chats_synced": "群组同步完成。",
     "chat_toggled": "监听状态已更新。",
+    "chat_unavailable": "该群组已被同步标记为不可用，请重新加入后同步群组。",
     "rule_saved": "规则已保存。",
     "rule_updated": "规则修改已保存。",
     "rule_toggled": "规则状态已更新。",
@@ -405,6 +406,8 @@ def toggle_chat(chat_id: int, db: Session = Depends(get_db)):
     chat = db.get(Chat, chat_id)
     if not chat:
         raise HTTPException(404, "chat not found")
+    if not chat.is_available:
+        return redirect("/chats?notice=chat_unavailable")
     chat.enabled = not chat.enabled
     db.commit()
     return redirect("/chats?notice=chat_toggled")

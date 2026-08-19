@@ -1,15 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="card">
-  <div class="card-head"><div><h2>群组/频道</h2><span class="muted">开启监听后才会处理该群的新消息；主监听用于避免多个账号重复记录。</span></div></div>
+  <div class="card-head"><div><h2>群组/频道</h2><span class="muted">同步会自动识别已退出或被移除的群组并停止监听；重新加入后再次同步即可恢复可用。</span></div></div>
   <div class="table-wrap"><table>
     <thead><tr><th>ID</th><th>账号</th><th>Telegram Chat ID</th><th>标题</th><th>类型</th><th>监听</th><th>主监听</th><th>操作</th></tr></thead>
     <tbody>
     {% for c in chats %}
       <tr>
         <td>{{ c.id }}</td><td>{{ c.account.name }}</td><td>{{ c.telegram_chat_id }}</td><td class="wrap">{{ c.title }}</td>
-        <td>{{ display_label(c.type) }}</td><td><span class="status {% if c.enabled %}active{% else %}disabled{% endif %}">{{ "监听中" if c.enabled else "已停止" }}</span></td><td>{{ "是" if c.is_primary_listener else "否" }}</td>
-        <td><form method="post" action="/chats/{{ c.id }}/toggle"><button class="small {% if c.enabled %}danger{% else %}success{% endif %}">{{ "停止监听" if c.enabled else "开启监听" }}</button></form></td>
+        <td>{{ display_label(c.type) }}</td>
+        <td><span class="status {% if not c.is_available %}disabled{% elif c.enabled %}active{% else %}disabled{% endif %}">{{ "监听中" if c.is_available and c.enabled else ("已离开/不可用" if not c.is_available else "已停止") }}</span>{% if not c.is_available %}<br><span class="muted">最近同步未发现</span>{% endif %}</td>
+        <td>{{ "是" if c.is_available and c.is_primary_listener else "否" }}</td>
+        <td>{% if c.is_available %}<form method="post" action="/chats/{{ c.id }}/toggle"><button class="small {% if c.enabled %}danger{% else %}success{% endif %}">{{ "停止监听" if c.enabled else "开启监听" }}</button></form>{% else %}<span class="muted">重新同步后可恢复</span>{% endif %}</td>
       </tr>
     {% else %}
       <tr><td class="empty" colspan="8">还没有群组，请先在账户页同步群组。</td></tr>

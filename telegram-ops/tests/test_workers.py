@@ -7,7 +7,76 @@ from app.config import get_settings
 from app.database import Base
 from app.enums import ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_FLOOD_WAIT, QUEUE_FLOOD_WAIT, QUEUE_PENDING, SEND_MODE_SCHEDULED_GROUP
 from app.models import Account, Chat, Rule, RuleScheduleTarget, SendQueue
-from app.workers import enqueue_due_schedules, recover_expired_flood_waits, retry_delay_seconds
+from app.workers import enqueue_due_schedules, reconcile_account_chats, recover_expired_flood_waits, retry_delay_seconds
+
+
+def test_reconcile_account_chats_disables_chats_missing_from_sync():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    synced_at = datetime(2026, 1, 1, 12, 0, 0)
+
+    with Session(engine) as db:
+        account = Account(name="sync", phone="10000", api_id=1, api_hash_encrypted="hash")
+        db.add(account)
+        db.flush()
+        present = Chat(account_id=account.id, telegram_chat_id=-10001, title="仍在群里", type="supergroup", enabled=True)
+        stale = Chat(account_id=account.id, telegram_chat_id=-10002, title="已离开", type="supergroup", enabled=True)
+        other = Chat(account_id=account.id, telegram_chat_id=-10003, title="已手动停止", type="supergroup", enabled=False)
+        db.add_all([present, stale, other])
+        db.flush()
+
+        assert reconcile_account_chats(db, account.id, {-10001}, synced_at) == 2
+        db.flush()
+        db.refresh(present)
+        db.refresh(stale)
+        db.refresh(other)
+
+        assert present.is_available is True
+        assert present.enabled is True
+        assert stale.is_available is False
+        assert stale.enabled is False
+        assert stale.is_primary_listener is False
+        assert stale.last_sync_at == synced_at
+        assert other.is_available is False
+        assert other.enabled is False
+
+
+def test_unavailable_schedule_target_is_not_queued():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    now = datetime(2026, 1, 1, 12, 0, 0)
+
+    with Session(engine) as db:
+        account = Account(name="unavailable", phone="10007", api_id=7, api_hash_encrypted="hash", status=ACCOUNT_STATUS_ACTIVE)
+        db.add(account)
+        db.flush()
+        chat = Chat(
+            account_id=account.id,
+            telegram_chat_id=-10007,
+            title="已离开群",
+            type="supergroup",
+            is_available=False,
+            enabled=False,
+        )
+        db.add(chat)
+        db.flush()
+        rule = Rule(
+            name="不可用目标",
+            keywords="",
+            match_mode="schedule",
+            reply_template="公告",
+            send_mode=SEND_MODE_SCHEDULED_GROUP,
+            schedule_interval_minutes=120,
+            schedule_next_run_at=now - timedelta(minutes=1),
+            enabled=True,
+        )
+        db.add(rule)
+        db.flush()
+        db.add(RuleScheduleTarget(rule_id=rule.id, account_id=account.id, chat_id=chat.id))
+        db.flush()
+
+        assert enqueue_due_schedules(db, now) == 0
+        assert db.query(SendQueue).count() == 0
 
 
 def test_retry_delay_uses_capped_exponential_backoff(monkeypatch):

@@ -36,7 +36,19 @@ def init_db() -> None:
     from app import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    ensure_chat_availability_schema()
     ensure_rule_schedule_schema()
+
+
+def ensure_chat_availability_schema() -> None:
+    """Add chat availability for databases created before sync reconciliation."""
+    inspector = inspect(engine)
+    if "chats" not in inspector.get_table_names():
+        return
+    existing = {column["name"] for column in inspector.get_columns("chats")}
+    if "is_available" not in existing:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE chats ADD COLUMN is_available BOOLEAN NOT NULL DEFAULT 1"))
 
 
 def ensure_rule_schedule_schema() -> None:

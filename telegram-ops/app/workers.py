@@ -130,7 +130,7 @@ def enqueue_due_schedules(db, now: datetime | None = None, limit: int = 20) -> i
         for account_id, chat_id in target_pairs:
             account = db.get(Account, account_id)
             chat = db.get(Chat, chat_id)
-            if not account or not chat or chat.account_id != account.id:
+            if not account or not chat or chat.account_id != account.id or not chat.is_available:
                 continue
 
             outstanding = (
@@ -372,6 +372,7 @@ class TelegramWorker:
                         Chat.account_id == self.account_id,
                         Chat.telegram_chat_id == telegram_chat_id,
                         Chat.enabled.is_(True),
+                        Chat.is_available.is_(True),
                         Chat.is_primary_listener.is_(True),
                     )
                     .first()
@@ -673,6 +674,7 @@ async def sync_account_chats(account_id: int) -> int:
                 account.status = ACCOUNT_STATUS_LOGIN_REQUIRED
             return 0
         dialogs = await client.get_dialogs()
+        seen_chat_ids: set[int] = set()
         with session_scope() as db:
             for dialog in dialogs:
                 entity = dialog.entity
@@ -685,27 +687,56 @@ async def sync_account_chats(account_id: int) -> int:
                     chat_type = "group"
                 else:
                     continue
+                seen_chat_ids.add(telegram_chat_id)
                 existing = db.query(Chat).filter(Chat.account_id == account_id, Chat.telegram_chat_id == telegram_chat_id).first()
                 if not existing:
                     existing = Chat(account_id=account_id, telegram_chat_id=telegram_chat_id, title=dialog.name or str(telegram_chat_id), type=chat_type)
                     db.add(existing)
                 existing.title = dialog.name or existing.title
                 existing.type = chat_type
+                existing.is_available = True
                 existing.last_sync_at = datetime.utcnow()
                 count += 1
+            reconcile_account_chats(db, account_id, seen_chat_ids)
             _assign_primary_listeners(db)
     finally:
         await client.disconnect()
     return count
 
 
+def reconcile_account_chats(db, account_id: int, seen_chat_ids: set[int], synced_at: datetime | None = None) -> int:
+    """Disable stale chat rows that Telegram no longer returns for this account."""
+    synced_at = synced_at or datetime.utcnow()
+    stale_chats = (
+        db.query(Chat)
+        .filter(Chat.account_id == account_id, ~Chat.telegram_chat_id.in_(seen_chat_ids or {-1}), Chat.is_available.is_(True))
+        .all()
+    )
+    for chat in stale_chats:
+        chat.is_available = False
+        chat.enabled = False
+        chat.is_primary_listener = False
+        chat.last_sync_at = synced_at
+    return len(stale_chats)
+
+
 def _assign_primary_listeners(db) -> None:
-    chat_ids = [row[0] for row in db.query(Chat.telegram_chat_id).filter(Chat.enabled.is_(True)).distinct().all()]
+    chat_ids = [
+        row[0]
+        for row in db.query(Chat.telegram_chat_id)
+        .filter(Chat.enabled.is_(True), Chat.is_available.is_(True))
+        .distinct()
+        .all()
+    ]
     for telegram_chat_id in chat_ids:
         chats = (
             db.query(Chat)
             .join(Account, Account.id == Chat.account_id)
-            .filter(Chat.telegram_chat_id == telegram_chat_id, Chat.enabled.is_(True))
+            .filter(
+                Chat.telegram_chat_id == telegram_chat_id,
+                Chat.enabled.is_(True),
+                Chat.is_available.is_(True),
+            )
             .order_by((Account.status == ACCOUNT_STATUS_ACTIVE).desc(), Chat.id.asc())
             .all()
         )
