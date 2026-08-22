@@ -14,7 +14,6 @@ from telethon.errors import (
     UserDeactivatedBanError,
 )
 from telethon.sessions import StringSession
-from telethon.tl.types import UpdateNewMessage, UpdateNewChannelMessage
 
 from app.crypto import decrypt_text, encrypt_text
 from app.database import session_scope
@@ -293,57 +292,6 @@ class TelegramWorker:
     #         if account:
     #             account.risk_status = "ok" if all_ok else "health_check_failed"
 
-    async def _handle_raw_update(self, update: Any) -> None:
-        """处理原始更新事件"""
-        try:
-            # 只处理消息更新
-            if not isinstance(update, (UpdateNewMessage, UpdateNewChannelMessage)):
-                return
-            
-            # 获取消息
-            message = update.message
-            if not message or not hasattr(message, 'message'):
-                return
-            
-            text = message.message or ""
-            if not text.strip():
-                return
-            
-            # 获取聊天 ID 和发送者 ID
-            telegram_chat_id = message.chat_id
-            user_id = message.from_id.user_id if hasattr(message, 'from_id') and hasattr(message.from_id, 'user_id') else None
-            message_id = message.id
-            
-            print(f"[MSG] {telegram_chat_id}|{user_id}|{text[:30]}")
-            
-            # 数据库处理
-            with session_scope() as db:
-                chat = (
-                    db.query(Chat)
-                    .filter(
-                        Chat.account_id == self.account_id,
-                        Chat.telegram_chat_id == telegram_chat_id,
-                        Chat.enabled.is_(True),
-                        Chat.is_primary_listener.is_(True),
-                    )
-                    .first()
-                )
-                if not chat:
-                    return
-                
-                ctx = MessageContext(
-                    account_id=self.account_id,
-                    chat_id=chat.id,
-                    telegram_chat_id=telegram_chat_id,
-                    message_id=message_id,
-                    telegram_user_id=user_id,
-                    username=None,
-                    text=text,
-                )
-                process_incoming_message(db, ctx)
-        except Exception as e:
-            print(f"[ERROR] {e}")
-
     async def _handle_message(self, event: Any) -> None:
         """处理消息事件（备用）"""
         try:
@@ -441,6 +389,14 @@ class WorkerManager:
         while self.running:
             with session_scope() as db:
                 recover_expired_flood_waits(db, datetime.utcnow())
+                stale_cutoff = datetime.utcnow() - timedelta(minutes=10)
+                db.query(SendQueue).filter(
+                    SendQueue.status == QUEUE_SENDING,
+                    SendQueue.updated_at < stale_cutoff,
+                ).update(
+                    {"status": QUEUE_PENDING, "error": "recovered from stale sending"},
+                    synchronize_session=False,
+                )
             await self.reload_workers()
             await asyncio.sleep(get_settings().health_check_seconds)
 

@@ -3,7 +3,7 @@
     <select data-template-select aria-label="选择回复模板">
       <option value="">选择已保存模板</option>
       {% for item in reply_templates %}
-        <option value="{{ item.id }}" data-content="{{ item.content|e }}">{{ item.name }}</option>
+        <option value="{{ item.id }}" data-content="{{ item.content|replace('\r', '')|replace('\n', '\\n')|e }}">{{ item.name }}</option>
       {% endfor %}
     </select>
     <button class="secondary small" type="button" data-template-action="apply">套用</button>
